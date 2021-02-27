@@ -1,0 +1,15 @@
+[package]
+authors = ["Leon Minasyan <ierehon1905@gmail.com>"]
+edition = "2018"
+name = "islands-bevy"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = {version = "0.4.0", features = ["dynamic"]}# make sure this is the latest version
+bevy_prototype_lyon = {version = "0.2.0"}
+rand = "0.8.3"
+
+[profile.dev.package."*"]
+opt-level = 3
