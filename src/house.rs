@@ -10,10 +10,10 @@ pub struct House;
 pub fn build_house(
     commands: &mut Commands,
     materials: Res<Materials>,
-    query: Query<(Entity, &Size), With<Island>>,
+    query: Query<(Entity, &Size, &crate::island::Title), With<Island>>,
 ) {
     let mut rng = rand::thread_rng();
-    for (island_entity, island_size) in query.iter() {
+    for (island_entity, island_size, island_title) in query.iter() {
         let number_of_houses: usize = rng.gen_range(1..10);
         let mut houses: Vec<Entity> = Vec::with_capacity(number_of_houses);
         let radius = island_size.width / 2.;
@@ -22,7 +22,10 @@ pub fn build_house(
             let angle = i as f32 * std::f32::consts::TAU / number_of_houses as f32;
             let x = angle.cos() * radius;
             let y = angle.sin() * radius;
-            println!("Building house");
+            println!(
+                "Building house on island {} with entity_id {:?}",
+                island_title.0, island_entity
+            );
             let house = commands
                 .spawn(SpriteBundle {
                     material: materials.house_material.clone(),

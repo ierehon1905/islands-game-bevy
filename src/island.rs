@@ -4,8 +4,13 @@ use bevy::{
     prelude::*,
 };
 use bevy_prototype_lyon::{entity::ShapeBundle, prelude::*};
+use rand::prelude::SliceRandom;
 
-pub struct Title(String);
+pub struct IslandsResources {
+    pub available_names: Vec<String>,
+}
+
+pub struct Title(pub String);
 
 #[derive(Debug)]
 pub struct Hovered(pub bool);
@@ -32,14 +37,17 @@ pub struct IslandBundle {
     // grass: ShapeBundle,
 }
 
-pub fn spawn_island_at(commands: &mut Commands, materials: &Res<Materials>, translation: Vec3) {
+pub fn spawn_island_at(
+    commands: &mut Commands,
+    materials: &Res<Materials>,
+    island_mat: &Res<IslandsResources>,
+    translation: Vec3,
+) {
     println!("Spawning island");
-    let width: f32 = (translation.x.cos() * 150.) + 50.;
-    // let triangle = shapes::Polygon {
-    //     points: vec![vec2(-width / 2., 0.), vec2(width / 2., 0.), vec2(0., -100.)],
-    //     closed: true,
-    // };
 
+    let mut rng = rand::thread_rng();
+
+    let width: f32 = (translation.x.cos() * 150.) + 50.;
     let triangle = shapes::Circle {
         radius: width / 2.,
         center: Vec2::zero(),
@@ -50,11 +58,16 @@ pub fn spawn_island_at(commands: &mut Commands, materials: &Res<Materials>, tran
         height: width,
         origin: shapes::RectangleOrigin::Center,
     };
+    let new_name = island_mat
+        .available_names
+        .choose(&mut rng)
+        .unwrap()
+        .to_string();
 
     commands
         .spawn(IslandBundle {
             position: vec2(0., 0.),
-            title: Title("Land".to_string()),
+            title: Title(new_name),
             size: Size {
                 width: width,
                 height: 10.,
@@ -84,12 +97,27 @@ pub fn spawn_island_at(commands: &mut Commands, materials: &Res<Materials>, tran
         });
 }
 
-pub fn spawn_islands(commands: &mut Commands, materials: Res<Materials>) {
-    spawn_island_at(commands, &materials, vec3(0., 0., 0.));
+pub fn spawn_islands(
+    commands: &mut Commands,
+    materials: Res<Materials>,
+    island_mat: Res<IslandsResources>,
+) {
+    spawn_island_at(commands, &materials, &island_mat, vec3(0., 0., 0.));
 
-    for i in 0..15 {
+    for i in 0..1 {
         let x: f32 = 500. * (i as f32).cos();
         let y: f32 = 500. * (i as f32).sin();
-        spawn_island_at(commands, &materials, vec3(x, y, 0.));
+        spawn_island_at(commands, &materials, &island_mat, vec3(x, y, 0.));
+    }
+}
+
+pub struct IslandsPlugin;
+impl Plugin for IslandsPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_resource(IslandsResources {
+            available_names: vec!["Land #1".to_string(), "Ocor".to_string()],
+        })
+        .add_startup_system_to_stage(MyStages::Islands.to_str(), spawn_islands.system())
+        .add_system(draw_hovered_islands.system());
     }
 }

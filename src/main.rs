@@ -66,10 +66,8 @@ fn my_cursor_system(
     // need to get window dimensions
     wnds: Res<Windows>,
     // query to get camera transform
-    mut q_camera: QuerySet<(
-        Query<&Transform, With<Camera>>,
-        Query<(&mut Hovered, &GlobalTransform, &Parent)>,
-    )>,
+    q_camera: Query<&Transform, With<Camera>>,
+    mut q_hov: Query<(&mut Hovered, &GlobalTransform, &Parent)>,
 ) {
     // Mouse buttons
     // for ev in evr_mousebtn.iter(&ev_mousebtn) {
@@ -82,8 +80,8 @@ fn my_cursor_system(
 
     // q_camera.q0_mut();
     // assuming there is exactly one main camera entity, so this is OK
-    let camera_transform = q_camera.q0().iter().next().unwrap().compute_matrix();
-    let islands = q_camera.q1_mut().iter_mut();
+    let camera_transform = q_camera.iter().next().unwrap().compute_matrix();
+    let islands = q_hov.iter_mut();
     if let Some(ev) = evr_cursor.latest(&ev_cursor) {
         let wnd = wnds.get(ev.id).unwrap();
         let size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
@@ -163,12 +161,10 @@ fn main() {
             MyStages::PreSetup.to_str(),
             SystemStage::single(setup.system()),
         )
-        // .add_startup_stage_after("pre_setup", "game_setup", SystemStage::serial())
-        // .add_startup_system_to_stage("islands")
         .add_startup_stage_after(
             MyStages::PreSetup.to_str(),
             MyStages::Islands.to_str(),
-            SystemStage::single(spawn_islands.system()),
+            SystemStage::parallel(),
         )
         .add_startup_stage_after(
             MyStages::Islands.to_str(),
@@ -178,11 +174,11 @@ fn main() {
         .add_startup_stage_after(
             MyStages::Homes.to_str(),
             MyStages::People.to_str(),
-            SystemStage::single(colonize_homes.system()),
+            SystemStage::parallel(),
         )
         .add_system(cam_move.system())
         .add_system(my_cursor_system.system())
-        .add_system(draw_hovered_islands.system())
+        .add_plugin(IslandsPlugin)
         .add_plugin(PeoplePlugin)
         .add_plugin(ResourcesPlugin)
         .run();
