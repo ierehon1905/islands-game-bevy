@@ -5,12 +5,14 @@ use bevy_prototype_lyon::prelude::*;
 
 mod island;
 use island::*;
-mod road;
-use road::*;
+
 mod house;
 use house::*;
 mod person;
 use person::{colonize_homes, move_people, PeoplePlugin};
+use resource::ResourcesPlugin;
+
+mod resource;
 
 const CAMERA_SPEED: f32 = 10.;
 
@@ -129,20 +131,59 @@ fn draw_hovered_islands(
         }
     }
 }
+
+enum MyStages {
+    PreSetup,
+    Islands,
+    Homes,
+    People,
+}
+
+// impl MyStages {
+//     pub fn
+// }
+
+impl MyStages {
+    pub fn to_str(self) -> &'static str {
+        match self {
+            MyStages::PreSetup => "pre_setup",
+            MyStages::Islands => "islands",
+            MyStages::Homes => "homes",
+            MyStages::People => "people",
+        }
+    }
+}
+
 fn main() {
     App::build()
         .init_resource::<Selected>()
         .add_plugins(DefaultPlugins)
         .add_plugin(ShapePlugin)
-        .add_startup_stage("pre_setup", SystemStage::single(setup.system()))
-        .add_startup_stage_after("pre_setup", "game_setup", SystemStage::serial())
-        .add_startup_system_to_stage("game_setup", spawn_islands.system())
-        .add_startup_system_to_stage("game_setup", build_cities.system())
-        .add_startup_system_to_stage("game_setup", build_house.system())
-        .add_startup_system_to_stage("game_setup", colonize_homes.system())
+        .add_startup_stage(
+            MyStages::PreSetup.to_str(),
+            SystemStage::single(setup.system()),
+        )
+        // .add_startup_stage_after("pre_setup", "game_setup", SystemStage::serial())
+        // .add_startup_system_to_stage("islands")
+        .add_startup_stage_after(
+            MyStages::PreSetup.to_str(),
+            MyStages::Islands.to_str(),
+            SystemStage::single(spawn_islands.system()),
+        )
+        .add_startup_stage_after(
+            MyStages::Islands.to_str(),
+            MyStages::Homes.to_str(),
+            SystemStage::single(build_house.system()),
+        )
+        .add_startup_stage_after(
+            MyStages::Homes.to_str(),
+            MyStages::People.to_str(),
+            SystemStage::single(colonize_homes.system()),
+        )
         .add_system(cam_move.system())
         .add_system(my_cursor_system.system())
         .add_system(draw_hovered_islands.system())
         .add_plugin(PeoplePlugin)
+        .add_plugin(ResourcesPlugin)
         .run();
 }

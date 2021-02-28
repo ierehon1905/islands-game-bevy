@@ -35,21 +35,20 @@ pub struct IslandBundle {
 pub fn spawn_island_at(commands: &mut Commands, materials: &Res<Materials>, translation: Vec3) {
     println!("Spawning island");
     let width: f32 = (translation.x.cos() * 150.) + 50.;
-    let triangle = shapes::Polygon {
-        points: vec![vec2(-width / 2., 0.), vec2(width / 2., 0.), vec2(0., -100.)],
-        closed: true,
-    };
+    // let triangle = shapes::Polygon {
+    //     points: vec![vec2(-width / 2., 0.), vec2(width / 2., 0.), vec2(0., -100.)],
+    //     closed: true,
+    // };
 
-    let rect = shapes::Rectangle {
-        width: width,
-        height: 20.,
-        origin: shapes::RectangleOrigin::CustomCenter(vec2(0., -10.)),
+    let triangle = shapes::Circle {
+        radius: width / 2.,
+        center: Vec2::zero(),
     };
 
     let bbox = shapes::Rectangle {
         width: width,
-        height: 100.,
-        origin: shapes::RectangleOrigin::CustomCenter(vec2(0., -50.)),
+        height: width,
+        origin: shapes::RectangleOrigin::Center,
     };
 
     commands
@@ -69,13 +68,6 @@ pub fn spawn_island_at(commands: &mut Commands, materials: &Res<Materials>, tran
                 .spawn(GeometryBuilder::build_as(
                     &triangle,
                     materials.soil_material.clone(),
-                    TessellationMode::Fill(FillOptions::default()),
-                    Transform::default(),
-                ))
-                .with(GlobalTransform::default())
-                .spawn(GeometryBuilder::build_as(
-                    &rect,
-                    materials.grass_material.clone(),
                     TessellationMode::Fill(FillOptions::default()),
                     Transform::default(),
                 ))
