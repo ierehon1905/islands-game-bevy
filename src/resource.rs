@@ -9,7 +9,7 @@ use rand::Rng;
 
 use crate::MyStages;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum NaturalResourceType {
     Coal,
     Iron,

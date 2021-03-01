@@ -22,7 +22,7 @@ use crate::{
 const PERSON_SPEED: f32 = 200.;
 
 #[derive(Debug, PartialEq, Eq)]
-enum PersonTask {
+pub enum PersonTask {
     Idle,
     Gathering(NaturalResourceType, Entity),
     Wandering,
@@ -35,13 +35,14 @@ impl Default for PersonTask {
 }
 
 pub struct WanderTimer(Timer);
-pub struct TargetPosition(Option<Vec2>);
+pub struct GatherTimer(Timer);
+pub struct TargetPosition(pub Option<Vec2>);
 
 #[derive(Debug)]
 pub struct Person {
-    name: String,
-    task: PersonTask,
-    house: Option<Entity>,
+    pub name: String,
+    pub task: PersonTask,
+    pub house: Option<Entity>,
 }
 
 impl Default for Person {
@@ -54,7 +55,7 @@ impl Default for Person {
     }
 }
 
-const AVAILABLE_PERSON_NAMES: [&str; 7] = [
+pub const AVAILABLE_PERSON_NAMES: [&str; 7] = [
     "Leon", "Alina", "Elena", "Eduard", "Alexey", "Michael", "Vasya",
 ];
 
@@ -166,8 +167,9 @@ pub fn make_people_wander(
     let mut rng = rand::thread_rng();
 
     for (mut target, mut person) in query.iter_mut() {
-        if person.task != PersonTask::Idle {
-            continue;
+        match person.task {
+            PersonTask::Idle => {}
+            _ => continue,
         }
         person.task = PersonTask::Wandering;
         let mut anchor: (f32, f32) = (0., 0.);
@@ -191,7 +193,7 @@ pub fn make_people_wander(
 
 pub fn make_people_gather(
     time: Res<Time>,
-    mut timer: ResMut<WanderTimer>,
+    mut timer: ResMut<GatherTimer>,
     mut person_q: Query<(&Transform, &mut Person, &mut TargetPosition)>,
     nr_q: Query<(&Transform, &NaturalResource, Entity)>,
     pool: Res<bevy::tasks::ComputeTaskPool>,
@@ -207,9 +209,9 @@ pub fn make_people_gather(
             continue;
         }
         let person_tr_v2 = vec2(person_t.translation.x, person_t.translation.y);
-        // if rng.gen_ratio(60, 100) {
-        //     continue;
-        // }
+        if rng.gen_bool(0.5) {
+            continue;
+        }
         let min_dis = Arc::new(Mutex::new(f32::INFINITY)); // f32::INFINITY;
         let min_nr: Arc<Mutex<Option<(Entity, &NaturalResource, Vec2)>>> =
             Arc::new(Mutex::new(None)); // f32::INFINITY;
@@ -238,7 +240,7 @@ pub fn make_people_gather(
                 }
             };
             println!("Found nearest dist {} to {}", min_dis, target_name);
-            per.task = PersonTask::Gathering(nearest_resource.1.0, nearest_resource.0);
+            per.task = PersonTask::Gathering(nearest_resource.1 .0, nearest_resource.0);
             *tar = TargetPosition(Some(nearest_resource.2));
         }
 
@@ -259,10 +261,11 @@ impl Plugin for PeoplePlugin {
     fn build(&self, app: &mut AppBuilder) {
         // the reason we call from_seconds with the true flag is to make the timer repeat itself
         app.add_resource(WanderTimer(Timer::from_seconds(2.0, true)))
+            .add_resource(GatherTimer(Timer::from_seconds(1.0, true)))
             .add_event::<GatherEvent>()
             // .add_startup_system(add_people.system())
             .add_startup_system_to_stage(MyStages::People.to_str(), colonize_homes.system())
-            // .add_system(make_people_wander.system())
+            .add_system(make_people_wander.system())
             .add_system(move_people.system())
             .add_system(make_people_gather.system())
             .add_system(handle_gather_events.system());
